@@ -1,0 +1,7 @@
+config SPI_TESTN
+	tristate "SPI testing"
+	depends on SPI
+	---help---
+
+	  Module will be called spi_test.
+
