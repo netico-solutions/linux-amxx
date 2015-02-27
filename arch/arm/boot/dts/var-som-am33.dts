@@ -965,7 +965,6 @@
 	pinctrl-0 = <&mmc1_pins_default>;
 	pinctrl-1 = <&mmc1_pins_sleep>;
 	cd-gpios = <&gpio1 28 GPIO_ACTIVE_HIGH>;
-	wp-gpios = <&gpio2 18 GPIO_ACTIVE_HIGH>;
 };
 
 &sham {
@@ -1049,7 +1048,7 @@
 &spi1 {
 	status = "okay";
 
-#if 0	/* NOTE: In order to use SPI on VAR-SOM-AM33 CustomBoard -
+#if 1	/* NOTE: In order to use SPI on VAR-SOM-AM33 CustomBoard -
 	1) Need to remove R9 and R10 resistors from the CustomBoard.
 	2) Need to also remove U21 from the CustomBoard. */
 
@@ -1057,6 +1056,7 @@
 	pinctrl-0 = <&spi1_pins_default>;
 	pinctrl-1 = <&spi1_pins_sleep>;
 #endif
+#if 0
 	spidev0: spi@0 {
 		compatible = "spidev";
 		reg = <0>;
@@ -1069,4 +1069,5 @@
 		reg = <1>;
 		spi-max-frequency = <16000000>;
 	};
+#endif
 };
