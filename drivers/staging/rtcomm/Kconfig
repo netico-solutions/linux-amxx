@@ -1,0 +1,15 @@
+#
+# Real-time drivers
+#
+menu "Real-time communication driver"
+
+config RTCOMM
+    tristate "Real-time communication driver"
+    depends on SPI 
+    help
+      Real-time communication driver something
+
+      To compile this driver as a module, choose M here: the 
+      module will be called rtcomm.
+
+endmenu
