@@ -18,7 +18,7 @@
 #include <linux/fs.h>
 #include <asm/uaccess.h>
 
-#define RTCOMM_NAME                     "RTCOMM"
+#define RTCOMM_NAME                     "rtcomm"
 #define g_log_level                     5
 
 #define RTCOMM_ERR(msg, ...)                                           \
@@ -99,7 +99,7 @@ static uint32_t ppbuff_size(struct ppbuff * ppbuff);
 /*--  Module parameters  ----------------------------------------------------*/
 static int g_bus_id = 1;
 module_param(g_bus_id, int, S_IRUGO);
-MODULE_PARM_DESC(g_bus_is, "SPI bus ID");
+MODULE_PARM_DESC(g_bus_id, "SPI bus ID");
 
 static int g_notify = 55;
 module_param(g_notify, int, S_IRUGO);
@@ -296,28 +296,6 @@ static int rtcomm_open(struct inode * inode, struct file * fd)
         }
         g_rtcomm_state.is_isr_init = true;
 
-        {
-            uint32_t    idx;
-            uint8_t buffer[32];
-            uint8_t received[32];
-            
-            memset(buffer, 0xa1, sizeof(buffer));
-            memset(&g_rtcomm_state.spi_transfer, 0, sizeof(g_rtcomm_state.spi_transfer));
-            g_rtcomm_state.spi_transfer.tx_buf = buffer;
-            g_rtcomm_state.spi_transfer.rx_buf = received;
-            g_rtcomm_state.spi_transfer.len    = sizeof(buffer);
-            
-            spi_message_init(&g_rtcomm_state.spi_message);
-            spi_message_add_tail(&g_rtcomm_state.spi_transfer, &g_rtcomm_state.spi_message);
-            g_rtcomm_state.spi_message.complete = NULL;
-            g_rtcomm_state.spi_message.context  = NULL;
-            spi_sync_locked(g_spi, &g_rtcomm_state.spi_message);
-            
-            for (idx = 0; idx < sizeof(received); idx++) {
-                RTCOMM_NOT("idx: %d = %d\n", idx, received[idx]);
-            }
-        }
-
         return (0);
 fail_gpio_isr_request:        
 fail_gpio_isr_map_request:
@@ -390,7 +368,7 @@ static ssize_t rtcomm_read(struct file * fd, char __user * buff, size_t count,
 
 static int __init rtcomm_init(void)
 {
-        char                    label[64];
+        static char             label[64];
         int                     ret;
         struct spi_master *     master;
         struct spi_board_info   rtcomm_device_info = {
