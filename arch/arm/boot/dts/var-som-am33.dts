@@ -175,8 +175,14 @@
 
 &am33xx_pinmux {
 	pinctrl-names = "default";
-	pinctrl-0 = <&clkout1_pin &gpio_keys_s0>;
+	pinctrl-0 = <&clkout1_pin &gpio_keys_s0 &notify_ms>;
 
+    notify_ms: notify_ms_default {
+        pinctrl-single,pins = <
+            0x154 0x27	/* spi0_d0.gpio0_3, INPUT | MODE7 */
+        >;
+    };
+    
 	lcd_pins_default: lcd_pins_default {
 		pinctrl-single,pins = <
 #if 0
@@ -494,12 +500,6 @@
 		>;
 	};
 	
-	/* ctw6120 irq GPIO. */
-	ctw6120_pins: pinmux_ctw6120_pins {
-		pinctrl-single,pins = <
-			0x154 0x27	/* spi0_d0.gpio0_3, INPUT | MODE7 */
-		>;
-	};
 	dcan0_default: dcan0_default_pins {
 		pinctrl-single,pins = <
 			0x11c (PIN_OUTPUT_PULLDOWN | MUX_MODE1)	 /* AM33XX_CONTROL_PADCONF_MII1_TXD3_OFFSET			0x091C */
@@ -645,19 +645,6 @@
 		IOVDD-supply = <&vaux2_reg>;
 		DRVDD-supply = <&vaux2_reg>;
 		DVDD-supply = <&vbat>;
-	};
-
-	ctw6120_tsc@38 {
-		compatible = "var,ctw6120-tsc";
-		pinctrl-names = "default";
-		pinctrl-0 = <&ctw6120_pins>;
-		reg = <0x38>;
-		interrupt-parent = <&gpio0>;
-		interrupts = <3 IRQ_TYPE_NONE>;
-		
-
-		x-size = <800>;
-		y-size = <480>;
 	};
 };
 
