@@ -92,7 +92,6 @@ static ssize_t rtcomm_read(struct file * fd, char __user *, size_t, loff_t *);
 static struct ppbuff * ppbuff_init(uint32_t size);
 static void ppbuff_term(struct ppbuff * ppbuff);
 static void ppbuff_producer_done(struct ppbuff * ppbuff);
-static void * ppbuff_get_producer_storage(struct ppbuff * ppbuff);
 static void * ppbuff_get_consumer_storage(struct ppbuff * ppbuff);
 static uint32_t ppbuff_size(struct ppbuff * ppbuff);
 
@@ -105,7 +104,7 @@ static int g_notify = 55;
 module_param(g_notify, int, S_IRUGO);
 MODULE_PARM_DESC(g_notify, "notification GPIO pin");
 
-static int g_buff_size = 1024;
+static int g_buff_size = 2048;
 module_param(g_buff_size, int, S_IRUGO);
 MODULE_PARM_DESC(g_buff_size, "buffer size");
 
@@ -126,6 +125,8 @@ static struct miscdevice        g_rtcomm_miscdev = {
 static struct rtcomm_state      g_rtcomm_state;
 static struct spi_device *      g_spi;
 static struct ppbuff *          g_ppbuff;
+
+
 
 static struct ppbuff * ppbuff_init(uint32_t size)
 {
@@ -157,6 +158,8 @@ static struct ppbuff * ppbuff_init(uint32_t size)
         return (ppbuff);
 }
 
+
+
 static void ppbuff_term(struct ppbuff * ppbuff)
 {
         RTCOMM_DBG("term PPBUFF: %p\n", ppbuff);
@@ -167,6 +170,8 @@ static void ppbuff_term(struct ppbuff * ppbuff)
         }
 }
 
+
+
 static void ppbuff_producer_done(struct ppbuff * ppbuff)
 {
         RTCOMM_DBG("done PPBUFF: %p, count: %d\n", ppbuff, ppbuff->count);
@@ -175,21 +180,14 @@ static void ppbuff_producer_done(struct ppbuff * ppbuff)
         wake_up_interruptible(&ppbuff->wait);
 }
 
+
+
 static void ppbuff_consumer_done(struct ppbuff * ppbuff)
 {
         ppbuff->count = 0;
 }
 
-static void * ppbuff_get_producer_storage(struct ppbuff * ppbuff)
-{
-        RTCOMM_DBG("get producer storage PPBUFF: %p, count %d\n", ppbuff, ppbuff->count);
 
-        if (ppbuff->count == 0) {
-                return (ppbuff->buffer);
-        } else {
-                return (NULL);
-        }
-}
 
 static void * ppbuff_get_consumer_storage(struct ppbuff * ppbuff)
 {
@@ -198,6 +196,8 @@ static void * ppbuff_get_consumer_storage(struct ppbuff * ppbuff)
         return (ppbuff->buffer);
 }
 
+
+
 static uint32_t ppbuff_size(struct ppbuff * ppbuff)
 {
         return (sizeof(struct acqunity_sample) * ppbuff->size);
@@ -205,35 +205,10 @@ static uint32_t ppbuff_size(struct ppbuff * ppbuff)
 
 
 
-static void transfer_done(void * arg)
-{
-        ppbuff_producer_done(g_ppbuff);
-}
-
 static irqreturn_t trigger_notify_handler(int irq, void * p)
 {
-        void *                  storage;
-
         disable_irq_nosync(irq);
-        #if 0
-        storage = ppbuff_get_producer_storage(g_ppbuff);
-        
-        if (storage) {
-                memset(&g_rtcomm_state.spi_transfer, 0, sizeof(g_rtcomm_state.spi_transfer));
-                g_rtcomm_state.spi_transfer.rx_buf = storage;
-                g_rtcomm_state.spi_transfer.len    = ppbuff_size(g_ppbuff);
-                
-                spi_message_init(&g_rtcomm_state.spi_message);
-                spi_message_add_tail(&g_rtcomm_state.spi_transfer, &g_rtcomm_state.spi_message);
-                g_rtcomm_state.spi_message.complete = transfer_done;
-                g_rtcomm_state.spi_message.context  = NULL;
-                spi_async_locked(g_spi, &g_rtcomm_state.spi_message);
-        } else {
-                RTCOMM_ERR("skipped read!\n");
-        }
-        #else
         ppbuff_producer_done(g_ppbuff);
-        #endif
         enable_irq(irq);
 
         return (IRQ_HANDLED);
@@ -329,16 +304,17 @@ static int rtcomm_release(struct inode * inode, struct file * fd)
 
 
 
-static ssize_t rtcomm_read(struct file * fd, char __user * buff, size_t count, 
-                loff_t * off)
+static ssize_t rtcomm_read(struct file * fd, char __user * buff, 
+                size_t byte_count, loff_t * off)
 {
         void *                  storage;
 
-        RTCOMM_DBG("read: size %d\n", count);
+        RTCOMM_DBG("read: requested size %d\n", byte_count);
 
-        if (count > ppbuff_size(g_ppbuff)) {
-                count = ppbuff_size(g_ppbuff);
+        if (byte_count > ppbuff_size(g_ppbuff)) {
+                byte_count = ppbuff_size(g_ppbuff);
         }
+        RTCOMM_DBG("read: size %d\n", byte_count);
         storage = ppbuff_get_consumer_storage(g_ppbuff);
         
         if (!storage) {
@@ -346,22 +322,22 @@ static ssize_t rtcomm_read(struct file * fd, char __user * buff, size_t count,
         }
         memset(&g_rtcomm_state.spi_transfer, 0, sizeof(g_rtcomm_state.spi_transfer));
         g_rtcomm_state.spi_transfer.rx_buf = storage;
-        g_rtcomm_state.spi_transfer.len    = ppbuff_size(g_ppbuff);
+        g_rtcomm_state.spi_transfer.len    = byte_count;
         
         spi_message_init(&g_rtcomm_state.spi_message);
         spi_message_add_tail(&g_rtcomm_state.spi_transfer, &g_rtcomm_state.spi_message);
         g_rtcomm_state.spi_message.complete = NULL;
         g_rtcomm_state.spi_message.context  = NULL;
         spi_sync_locked(g_spi, &g_rtcomm_state.spi_message);
-        RTCOMM_DBG("read copy: size: %d\n", count);
+        RTCOMM_DBG("read copy: size: %d\n", byte_count);
         
-        if (copy_to_user(buff, storage, count)) {
+        if (copy_to_user(buff, storage, byte_count)) {
             return (-EFAULT);
         }
         ppbuff_consumer_done(g_ppbuff);
-        *off += count;
+        *off += byte_count;
         
-        return (count);
+        return (byte_count);
 }
 
 
