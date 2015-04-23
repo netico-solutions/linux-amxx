@@ -1,1 +1,1 @@
-# kernel-VAR-SOM-AMxx
+# Linux kernel for Variscite AMxx modules
