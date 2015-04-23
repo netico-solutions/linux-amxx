@@ -19,7 +19,7 @@
 #include <asm/uaccess.h>
 
 #define RTCOMM_NAME                     "rtcomm"
-#define g_log_level                     5
+#define g_log_level                     4
 
 #define RTCOMM_ERR(msg, ...)                                           \
         do {                                                            \
@@ -109,14 +109,16 @@ module_param(g_buff_size, int, S_IRUGO);
 MODULE_PARM_DESC(g_buff_size, "buffer size");
 
 
-static const struct file_operations g_rtcomm_fops = {
+static const struct file_operations g_rtcomm_fops = 
+{
         .owner          = THIS_MODULE,
         .open           = rtcomm_open,
         .release        = rtcomm_release,
         .read           = rtcomm_read,
 };
 
-static struct miscdevice        g_rtcomm_miscdev = {
+static struct miscdevice        g_rtcomm_miscdev = 
+{
         MISC_DYNAMIC_MINOR, 
         RTCOMM_NAME,
         &g_rtcomm_fops
@@ -174,7 +176,7 @@ static void ppbuff_term(struct ppbuff * ppbuff)
 
 static void ppbuff_producer_done(struct ppbuff * ppbuff)
 {
-        RTCOMM_DBG("done PPBUFF: %p, count: %d\n", ppbuff, ppbuff->count);
+        RTCOMM_DBG("done PPBUFF\n");
 
         ppbuff->count = 1;
         wake_up_interruptible(&ppbuff->wait);
