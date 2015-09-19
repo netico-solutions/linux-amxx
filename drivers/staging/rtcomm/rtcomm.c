@@ -233,7 +233,7 @@ static int rtcomm_open(struct inode * inode, struct file * fd)
         
         g_spi->bits_per_word = 8;
         g_spi->mode          = SPI_MODE_1;
-        g_spi->max_speed_hz  = 10000000ul;
+        g_spi->max_speed_hz  = 20000000ul;
         ret = spi_setup(g_spi);
             
         if (ret) {
@@ -351,11 +351,11 @@ static int __init rtcomm_init(void)
         struct spi_master *     master;
         struct spi_board_info   rtcomm_device_info = {
                 .modalias     = RTCOMM_NAME,
-                .max_speed_hz = 10000000ul,
+                .max_speed_hz = 40000000ul,
                 .bus_num      = g_bus_id,
         };
         RTCOMM_NOT("registering RTCOMM device driver\n");
-        RTCOMM_NOT("BUILD: " __TIME__ "\n");
+        RTCOMM_NOT("BUILD: " __TIME__ " : " __DATE__ "\n");
         RTCOMM_NOT("sizeof(struct acqunity_sample) = %d\n", 
                 sizeof(struct acqunity_sample));
 
