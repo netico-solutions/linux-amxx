@@ -193,9 +193,17 @@ static void ppbuff_consumer_done(struct ppbuff * ppbuff)
 
 static void * ppbuff_get_consumer_storage(struct ppbuff * ppbuff)
 {
-        wait_event_interruptible(ppbuff->wait, ppbuff->count != 0);
-        
-        return (ppbuff->buffer);
+        if (wait_event_interruptible(ppbuff->wait, ppbuff->count != 0) == 0)
+        {
+                return (ppbuff->buffer);
+        } 
+        else 
+        {
+                /*
+                 * In case we are interrupted return NULL pointer
+                 */
+                return (NULL);
+        }
 }
 
 
