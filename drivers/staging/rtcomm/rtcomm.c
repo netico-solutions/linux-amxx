@@ -62,12 +62,6 @@
         } while (0)
 
 
-struct acqunity_sample
-{
-    uint32_t                    channel[3];
-    uint32_t                    timestamp;
-};
-
 struct rtcomm_state 
 {
         struct spi_transfer     spi_transfer;
@@ -83,7 +77,7 @@ struct ppbuff
         wait_queue_head_t       wait;
         uint32_t                size;
         uint32_t                count;
-        struct acqunity_sample * buffer;
+        void *                  buffer;
 };
 
 static int rtcomm_open(struct inode * inode, struct file * fd);
@@ -104,9 +98,13 @@ static int g_notify = 55;
 module_param(g_notify, int, S_IRUGO);
 MODULE_PARM_DESC(g_notify, "notification GPIO pin");
 
-static int g_buff_size = 2048;
+static int g_buff_size = 65536;
 module_param(g_buff_size, int, S_IRUGO);
 MODULE_PARM_DESC(g_buff_size, "buffer size");
+
+static int g_log_level = 4;
+module_param(g_log_level, int, S_IRUGO);
+MODULE_PARM_DESC(g_log_level, "log level [4 - 0]");
 
 
 static const struct file_operations g_rtcomm_fops = 
@@ -146,8 +144,7 @@ static struct ppbuff * ppbuff_init(uint32_t size)
         ppbuff->count = 0;
         init_waitqueue_head(&ppbuff->wait);
 
-        ppbuff->buffer = kmalloc(sizeof(struct acqunity_sample) * size,
-                GFP_DMA | GFP_KERNEL);
+        ppbuff->buffer = kmalloc(size, GFP_DMA | GFP_KERNEL);
         RTCOMM_DBG("storage PPBUFF: %p\n", ppbuff->buffer);
 
         if (ppbuff->buffer == NULL) {
@@ -210,7 +207,7 @@ static void * ppbuff_get_consumer_storage(struct ppbuff * ppbuff)
 
 static uint32_t ppbuff_size(struct ppbuff * ppbuff)
 {
-        return (sizeof(struct acqunity_sample) * ppbuff->size);
+        return (ppbuff->size);
 }
 
 
@@ -357,11 +354,13 @@ static int __init rtcomm_init(void)
         static char             label[64];
         int                     ret;
         struct spi_master *     master;
-        struct spi_board_info   rtcomm_device_info = {
-                .modalias     = RTCOMM_NAME,
-                .max_speed_hz = 40000000ul,
-                .bus_num      = g_bus_id,
-        };
+        struct spi_board_info   rtcomm_device_info;
+        
+        memset(&rtcomm_device_info, 0, sizeof(rtcomm_device_info));
+        rtcomm_device_info.modalias     = RTCOMM_NAME;
+        rtcomm_device_info.max_speed_hz = 40000000ul;
+        rtcomm_device_info.bus_num      = g_bus_id;
+        
         RTCOMM_NOT("registering RTCOMM device driver\n");
         RTCOMM_NOT("BUILD: " __TIME__ " : " __DATE__ "\n");
         RTCOMM_NOT("sizeof(struct acqunity_sample) = %d\n", 
